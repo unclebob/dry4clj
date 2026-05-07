@@ -47,6 +47,18 @@
                                             :min-lines 3
                                             :min-nodes 8})))))
 
+  (it "reads cljc reader conditionals"
+    (let [dir (temp-dir)]
+      (write-source dir "left.cljc"
+                    "(ns sample.left)\n\n(defn alpha [x]\n  #?(:clj (when (pos? x)\n            (inc x))))\n")
+      (write-source dir "right.cljc"
+                    "(ns sample.right)\n\n(defn beta [y]\n  #?(:clj (when (pos? y)\n            (inc y))))\n")
+      (should= 1
+               (count (dry/find-duplicates {:paths [(.getPath dir)]
+                                            :threshold 0.50
+                                            :min-lines 1
+                                            :min-nodes 1})))))
+
   (it "filters forms shorter than the minimum line count"
     (let [dir (temp-dir)]
       (write-source dir "one.clj" "(ns one)\n(defn a [x] (+ x 1))\n")
