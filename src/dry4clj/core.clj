@@ -28,7 +28,8 @@
 
 (defn- read-one
   [reader]
-  (read {:eof ::eof :read-cond :allow :features #{:clj}} reader))
+  (binding [*default-data-reader-fn* tagged-literal]
+    (read {:eof ::eof :read-cond :allow :features #{:clj}} reader)))
 
 (defn- read-source-forms
   [file]
