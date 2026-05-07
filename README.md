@@ -104,6 +104,25 @@ For example, `clj -M:dry4clj src test/foo.clj` compares candidates from
 `test/foo.clj` against candidates from every Clojure source file under `src`,
 as well as comparing those files with each other.
 
+Default text output is intended for quick reading:
+
+```text
+DUPLICATE score=0.89
+  src/billing/invoice.clj:12-25
+  src/billing/receipt.clj:30-44
+```
+
+EDN output is intended for tools:
+
+```clojure
+{:candidates
+ [{:score 0.8909090909090909
+   :left {:file "src/billing/invoice.clj", :start-line 12, :end-line 25}
+   :right {:file "src/billing/receipt.clj", :start-line 30, :end-line 44}
+   :left-nodes 88
+   :right-nodes 91}]}
+```
+
 ## Development
 
 ```bash
