@@ -1,0 +1,10 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}}
+ :aliases {:dry4clj {:main-opts ["-m" "dry4clj.core"]}
+           :run {:main-opts ["-m" "dry4clj.core"]}
+           :test {:extra-paths ["spec"]
+                  :extra-deps {speclj/speclj {:mvn/version "3.10.0"}}
+                  :main-opts ["-m" "speclj.main" "-c"]}
+           :spec {:extra-paths ["spec"]
+                  :extra-deps {speclj/speclj {:mvn/version "3.10.0"}}
+                  :main-opts ["-m" "speclj.main" "-c"]}}}
