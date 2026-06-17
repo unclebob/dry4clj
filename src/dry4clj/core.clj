@@ -4,7 +4,7 @@
             [clojure.set :as set]
             [clojure.string :as str]))
 
-(def source-extensions #{".clj" ".cljc" ".cljs"})
+(def source-extensions #{".clj" ".cljc" ".cljs" ".cljd"})
 
 (def default-options
   {:paths ["src"]
