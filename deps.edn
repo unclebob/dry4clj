@@ -1,6 +1,26 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}}
  :aliases {:dry4clj {:main-opts ["-m" "dry4clj.core"]}
+           :deintroverter {:extra-deps {io.github.unclebob/deintroverter4clj
+                                         {:git/url "https://github.com/unclebob/deintroverter4clj.git"
+                                          :git/sha "fe3e8be4d39adfb8dadd3e0de999e1cd815183a2"}}
+                           :main-opts ["-m" "deintroverter.core"]}
+           :crap4clj {:extra-deps {io.github.unclebob/crap4clj
+                                    {:git/url "https://github.com/unclebob/crap4clj.git"
+                                     :git/sha "c3f8e1bcc7820a7a2da57312bd2d6b98888353f4"}}
+                      :main-opts ["-m" "crap4clj.core"]}
+           :clj-mutate {:extra-paths ["spec"]
+                        :extra-deps {io.github.unclebob/clj-mutate
+                                     {:git/url "https://github.com/unclebob/clj-mutate.git"
+                                      :git/sha "e27dd5df63c4efdd66438587d1c5f49e73661b69"}
+                                     org.clojure/data.json {:mvn/version "2.5.1"}
+                                     org.clojure/tools.reader {:mvn/version "1.4.2"}
+                                     speclj/speclj {:mvn/version "3.10.0"}}
+                        :main-opts ["-m" "clj-mutate.core"]}
+           :cov {:extra-paths ["spec"]
+                 :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}
+                              speclj/speclj {:mvn/version "3.10.0"}}
+                 :main-opts ["-m" "speclj.cloverage" "--" "-p" "src" "-s" "spec" "--lcov"]}
            :run {:main-opts ["-m" "dry4clj.core"]}
            :test {:extra-paths ["spec"]
                   :extra-deps {speclj/speclj {:mvn/version "3.10.0"}}

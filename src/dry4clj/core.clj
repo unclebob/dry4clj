@@ -41,13 +41,21 @@
           forms
           (recur (conj forms form)))))))
 
+(defn- form-line
+  [form]
+  (or (:line (meta form)) 1))
+
+(defn- line-children
+  [form]
+  (cond
+    (map? form) (mapcat identity form)
+    (coll? form) form))
+
 (defn- max-line
   [form]
-  (let [line (:line (meta form))]
-    (cond
-      (map? form) (reduce max (or line 1) (map max-line (mapcat identity form)))
-      (coll? form) (reduce max (or line 1) (map max-line form))
-      :else (or line 1))))
+  (if-let [children (seq (line-children form))]
+    (reduce max (form-line form) (map max-line children))
+    (form-line form)))
 
 (defn- preserve-head
   [form]
@@ -81,17 +89,26 @@
     (preserve-head form)
     (if (keyword? form) :keyword :symbol)))
 
+(defn- normalize-collection
+  [form]
+  (cond
+    (list? form) (normalize-list form)
+    (vector? form) (normalize-coll :vector form)
+    (map? form) (normalize-map form)
+    (set? form) (normalize-coll :set form)))
+
+(defn- normalize-atom
+  [form head?]
+  (if (or (symbol? form) (keyword? form))
+    (normalize-symbolic form head?)
+    :literal))
+
 (defn- normalize-form
   ([form]
    (normalize-form form false))
   ([form head?]
-   (cond
-     (list? form) (normalize-list form)
-     (vector? form) (normalize-coll :vector form)
-     (map? form) (normalize-map form)
-     (set? form) (normalize-coll :set form)
-     (or (symbol? form) (keyword? form)) (normalize-symbolic form head?)
-     :else :literal)))
+   (or (normalize-collection form)
+       (normalize-atom form head?))))
 
 (defn- node-count
   [form]
@@ -219,18 +236,23 @@
   (let [[option-key option-value] (flag-options arg)]
     (assoc options option-key option-value)))
 
+(defn- parse-next-arg
+  [options remaining]
+  (let [[arg value & more] remaining]
+    (cond
+      (value-options arg) [(apply-value-option options arg value) (seq more)]
+      (flag-options arg) [(apply-flag-option options arg) (next remaining)]
+      (help-options arg) [(assoc options :help true) nil]
+      :else [(update options :paths conj arg) (next remaining)])))
+
 (defn parse-args
   [args]
   (loop [options (assoc default-options :paths [])
          remaining (seq args)]
     (if-not remaining
       (finalize-paths options)
-      (let [[arg value & more] remaining]
-        (cond
-          (value-options arg) (recur (apply-value-option options arg value) (seq more))
-          (flag-options arg) (recur (apply-flag-option options arg) (next remaining))
-          (help-options arg) (assoc options :help true)
-          :else (recur (update options :paths conj arg) (next remaining)))))))
+      (let [[next-options next-remaining] (parse-next-arg options remaining)]
+        (recur next-options next-remaining)))))
 
 (def usage
   (str/join
@@ -261,16 +283,27 @@
     (println (str/join "\n\n" (map format-candidate candidates)))
     (println "No duplicate candidates found.")))
 
+(defn- exit
+  [status]
+  (System/exit status))
+
+(defn- print-unknown-format
+  [format]
+  (binding [*out* *err*]
+    (println "Unknown format:" (name format)))
+  (exit 2))
+
+(defn- print-candidates
+  [{:keys [format] :as options}]
+  (let [candidates (find-duplicates options)]
+    (case format
+      :edn (prn {:candidates candidates})
+      :text (print-text candidates)
+      (print-unknown-format format))))
+
 (defn -main
   [& args]
   (let [options (parse-args args)]
     (if (:help options)
       (println usage)
-      (let [candidates (find-duplicates options)]
-        (case (:format options)
-          :edn (prn {:candidates candidates})
-          :text (print-text candidates)
-          (do
-            (binding [*out* *err*]
-              (println "Unknown format:" (name (:format options))))
-            (System/exit 2)))))))
+      (print-candidates options))))

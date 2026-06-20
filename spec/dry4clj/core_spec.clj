@@ -103,4 +103,15 @@
     (let [dir (temp-dir)]
       (write-source dir "one.clj" "(ns one)\n(defn a [x] (+ x 1))\n")
       (should= "{:candidates []}\n"
-               (with-out-str (dry/-main "--edn" (.getPath dir)))))))
+               (with-out-str (dry/-main "--edn" (.getPath dir))))))
+
+  (it "reports unknown output formats"
+    (let [dir (temp-dir)
+          err (java.io.StringWriter.)
+          exits (atom [])]
+      (write-source dir "one.clj" "(ns one)\n(defn a [x] (+ x 1))\n")
+      (with-redefs [dry/exit #(swap! exits conj %)]
+        (binding [*err* err]
+          (dry/-main "--format" "csv" (.getPath dir))))
+      (should= "Unknown format: csv\n" (str err))
+      (should= [2] @exits))))
