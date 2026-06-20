@@ -69,6 +69,19 @@
                                      :min-lines 3
                                      :min-nodes 1}))))
 
+  (it "ignores paths that are not source files or directories"
+    (let [missing (io/file (temp-dir) "missing.clj")]
+      (should= []
+               (dry/find-duplicates {:paths [(.getPath missing)]}))))
+
+  (it "preserves non-symbol list heads by kind"
+    (should= :form (#'dry/preserve-head []))
+    (should= :literal (#'dry/preserve-head 1)))
+
+  (it "recognizes identical source locations"
+    (let [location {:file "same.clj" :start-line 10 :end-line 12}]
+      (should (#'dry/same-location? location location))))
+
   (it "parses command line options and paths"
     (should= {:paths ["spec"]
               :threshold 0.9
@@ -98,6 +111,12 @@
   (it "prints help from main without scanning files"
     (should-contain "Usage: clj -M:dry4clj"
                     (with-out-str (dry/-main "--help"))))
+
+  (it "prints text from main"
+    (let [dir (temp-dir)]
+      (write-source dir "one.clj" "(ns one)\n(defn a [x] (+ x 1))\n")
+      (should= "No duplicate candidates found.\n"
+               (with-out-str (dry/-main "--text" (.getPath dir))))))
 
   (it "prints edn from main"
     (let [dir (temp-dir)]
