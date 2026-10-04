@@ -26,9 +26,21 @@
       (.isDirectory file) (filter source-file? (file-seq file))
       :else [])))
 
+;; Scanned files are never loaded, so their aliases are unknown. Each alias
+;; resolves to itself: ::pco/output reads as :pco/output. Syntax-quoted symbols
+;; and #:: maps also resolve through this resolver. This is harmless because
+;; normalization erases their namespaces.
+(def ^:private alias-resolver
+  (reify clojure.lang.LispReader$Resolver
+    (currentNS [_] (ns-name *ns*))
+    (resolveClass [_ _] nil)
+    (resolveAlias [_ alias] alias)
+    (resolveVar [_ _] nil)))
+
 (defn- read-one
   [reader]
-  (binding [*default-data-reader-fn* tagged-literal]
+  (binding [*default-data-reader-fn* tagged-literal
+            *reader-resolver* alias-resolver]
     (read {:eof ::eof :read-cond :allow :features #{:clj}} reader)))
 
 (defn- read-source-forms

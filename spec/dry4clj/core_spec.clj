@@ -16,6 +16,10 @@
     (spit file text)
     file))
 
+(defn- def-value
+  [form]
+  (last form))
+
 (describe "dry4clj duplicate detection"
   (it "reports structural duplicate candidates with file and line ranges"
     (let [dir (temp-dir)
@@ -58,6 +62,52 @@
                                             :threshold 0.50
                                             :min-lines 1
                                             :min-nodes 1})))))
+
+  (it "reads keywords with an alias declared by :as"
+    (let [file (write-source (temp-dir) "a.clj"
+                             "(ns a (:require [com.example.op :as op]))\n(def x ::op/output)\n")]
+      (should= :op/output (def-value (second (#'dry/read-source-forms file))))))
+
+  (it "reads keywords with an alias declared by :as-alias"
+    (let [file (write-source (temp-dir) "a.clj"
+                             "(ns a (:require [com.example.op :as-alias op]))\n(def x ::op/output)\n")]
+      (should= :op/output (def-value (second (#'dry/read-source-forms file))))))
+
+  (it "reads keywords with an undeclared alias"
+    (let [file (write-source (temp-dir) "a.clj"
+                             "(ns a)\n(def x ::missing/output)\n")]
+      (should= :missing/output (def-value (second (#'dry/read-source-forms file))))))
+
+  (it "reads plain auto-resolved keywords in the runtime namespace, not the file's ns"
+    (let [file (write-source (temp-dir) "a.clj" "(ns a)\n(def x ::local)\n")
+          runtime-ns-keyword (keyword (str (ns-name *ns*)) "local")]
+      (should= runtime-ns-keyword
+               (def-value (second (#'dry/read-source-forms file))))))
+
+  (it "reads aliased keywords in a file without an ns form"
+    (let [file (write-source (temp-dir) "a.clj" "(def x ::op/output)\n")]
+      (should= :op/output (def-value (first (#'dry/read-source-forms file))))))
+
+  (it "reads aliased namespaced maps"
+    (let [file (write-source (temp-dir) "a.clj" "(def x #::op{:a 1})\n")]
+      (should= {:op/a 1} (def-value (first (#'dry/read-source-forms file))))))
+
+  (it "reports forms that use aliased keywords as duplicates"
+    (let [dir (temp-dir)
+          file (write-source dir "resolvers.clj"
+                             (str "(ns example.resolvers\n"
+                                  "  (:require [com.wsscode.pathom3.connect.operation :as pco]))\n"
+                                  "(def a {::pco/output [:x] ::local :y})\n"
+                                  "(def b {::pco/output [:x] ::local :y})\n"))
+          candidates (dry/find-duplicates {:paths [(.getPath dir)]
+                                           :threshold 0.80
+                                           :min-lines 1
+                                           :min-nodes 1})]
+      (should= 1 (count candidates))
+      (should= {:file (.getPath file) :start-line 3 :end-line 3}
+               (:left (first candidates)))
+      (should= {:file (.getPath file) :start-line 4 :end-line 4}
+               (:right (first candidates)))))
 
   (it "filters forms shorter than the minimum line count"
     (let [dir (temp-dir)]

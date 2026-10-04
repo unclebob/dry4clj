@@ -99,7 +99,8 @@ clj -M:dry4clj --edn --threshold 0.9 src
 
 Every file named on the command line participates in the same duplication
 search. When an argument is a directory, dry4clj recursively includes every
-`.clj`, `.cljc`, and `.cljs` file under that directory in the same search set.
+`.clj`, `.cljc`, `.cljs`, and `.cljd` file under that directory in the same
+search set.
 For example, `clj -M:dry4clj src test/foo.clj` compares candidates from
 `test/foo.clj` against candidates from every Clojure source file under `src`,
 as well as comparing those files with each other.
